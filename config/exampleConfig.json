@@ -1,0 +1,5 @@
+{
+  "port": 5003,
+  "myAddress": "http://localhost",
+  "corsOrigin": ["http://localhost"]
+}
