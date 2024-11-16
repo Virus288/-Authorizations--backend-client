@@ -1,7 +1,8 @@
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import rateLimit from './utils/index.js';
 import { FourOhFour } from '../../errors/index.js';
-import initTestRoutes from './modules/test/index.js';
+import initUserRoutes from './modules/user/index.js';
 import handleErr from '../../errors/handler.js';
 import State from '../../tools/state.js';
 import type { Router } from 'express';
@@ -23,7 +24,7 @@ export default class AppRouter {
    * Init unprotected routes.
    */
   initRoutes(): void {
-    initTestRoutes(this.router);
+    initUserRoutes(this.router);
   }
 
   initHealh(): void {
@@ -35,7 +36,7 @@ export default class AppRouter {
   }
 
   initFourOhFour(): void {
-    this.router.all('*', (_req, res) => {
+    this.router.all('*', rateLimit, (_req, res) => {
       handleErr(new FourOhFour(), res);
     });
   }
@@ -71,24 +72,7 @@ export default class AppRouter {
           },
         ],
       },
-      apis: [
-        './src/errors/index.ts',
-        './src/connections/router/modules/*/router.ts',
-        './src/connections/router/modules/*/docs.ts',
-        './src/connections/router/modules/*/dto.ts',
-        './src/connections/router/modules/*/*/dto.ts',
-        './src/connections/router/modules/*/*/router.ts',
-        './src/connections/router/modules/*/*/docs.ts',
-        './src/connections/router/modules/*/*/dto.ts',
-        './src/errors/index.js',
-        './src/connections/router/modules/*/router.js',
-        './src/connections/router/modules/*/docs.js',
-        './src/connections/router/modules/*/dto.js',
-        './src/connections/router/modules/*/*/dto.js',
-        './src/connections/router/modules/*/*/router.js',
-        './src/connections/router/modules/*/*/docs.js',
-        './src/connections/router/modules/*/*/dto.js',
-      ],
+      apis: ['./src/errors/index.ts', './scr/errors/index.js'],
     };
 
     const swaggerSpec = swaggerJSDoc(options);

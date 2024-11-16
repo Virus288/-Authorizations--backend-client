@@ -119,6 +119,15 @@ Each config includes few elements:
   "port": 5003,
   "myAddress": "http://localhost",
   "corsOrigin": ["http://localhost"]
+  "mongoURI": "mongodb://user:password@adress:port",
+  "authorizationAddress": "http://localhost",
+  "redisURI": "redis://:password@adress:port",
+  "session": {
+    "secret": "superSecretPasswordPleaseDoNotLeakIt",
+    "secured": true,
+    "trustProxy": true
+  }
+}
 }
 ```
 
@@ -127,6 +136,17 @@ Port is port, that application will use
 MyAddress is address, that will be used to host this application. Make sure to include port, if default won't be used
 
 CorsOrigin is list of website that will use this application. If you do not care about it, set ["*"]
+
+mongoURI is address for mongoDB
+
+authorizationAddress is address for authorization server, which should be utilized
+
+redisURI is address for redis, which is used to cache data like user sessions and connection params
+
+session is config for express-session.
+- Secret is secret, which should be used to generate cookies for session
+- Secured is boolean, which is true, sets secured cookies. This is used, because localhost will not set secured cookies in modern browsers
+- TrustProxy Is config, which will trust `X-Forwarded-For` cookie. Disabled it, unless your api is behind a load balancer like nginx
 
 ## 4. Docs
 

@@ -1,6 +1,8 @@
+import Log from 'simpleLogger';
+import Mongo from './connections/mongo/index.js';
+import Redis from './connections/redis/index.js';
 import Router from './connections/router/index.js';
 import Liveness from './tools/liveness.js';
-import Log from './tools/logger/index.js';
 import State from './tools/state.js';
 import type { IFullError } from './types/index.js';
 
@@ -16,14 +18,12 @@ class App {
   }
 
   init(): void {
-    try {
-      this.handleInit();
-    } catch (err) {
+    this.handleInit().catch((err) => {
       const { stack, message } = err as IFullError | Error;
       Log.error('Server', 'Err while initializing app', message, stack);
 
       this.close();
-    }
+    });
   }
 
   private close(): void {
@@ -33,12 +33,19 @@ class App {
     this.liveness?.close();
   }
 
-  private handleInit(): void {
+  @Log.decorateTime('App init')
+  private async handleInit(): Promise<void> {
     const router = new Router();
+    const mongo = new Mongo();
+    const redis = new Redis();
 
     State.router = router;
+    State.mongo = mongo;
+    State.redis = redis;
 
     router.init();
+    await mongo.init();
+    await redis.init();
 
     Log.log('Server', 'Server started');
 
