@@ -366,3 +366,32 @@ export class FourOhFour extends FullError {
     this.status = 404;
   }
 }
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     InvalidRequest:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Error name describing the error cause.
+ *           example: 'InvalidRequest'
+ *         code:
+ *           type: string
+ *           description: Unique code associated with the error.
+ *           example: '013'
+ *         message:
+ *           type: string
+ *           description: Error message describing the error cause.
+ *           pattern: "Invalid request. This error means that there was a problem with user provided client data"
+ */
+export class InvalidRequest extends FullError {
+  constructor() {
+    super('Invalid request');
+    this.name = 'InvalidRequest';
+    this.code = '014';
+    this.status = 400;
+  }
+}

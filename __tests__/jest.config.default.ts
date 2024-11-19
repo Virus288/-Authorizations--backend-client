@@ -10,7 +10,7 @@ const config: JestConfigWithTsJest = {
   preset: 'ts-jest/presets/default-esm',
   testMatch: ['**/*.test.ts'],
   testEnvironment: 'node',
-  forceExit: false,
+  forceExit: true,
   clearMocks: true,
   testTimeout: 10000,
   passWithNoTests: true,

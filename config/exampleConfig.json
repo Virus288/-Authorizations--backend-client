@@ -1,5 +1,13 @@
 {
   "port": 5003,
+  "mongoURI": "mongodb://user:pass@ser:port",
   "myAddress": "http://localhost",
-  "corsOrigin": ["http://localhost"]
+  "authorizationAddress": "http://localhost:2000",
+  "redisURI": "redis://user:password@adress:port",
+  "corsOrigin": ["http://localhost"],
+  "session": {
+    "secret": "sessionSecret",
+    "secured": false,
+    "trustProxy": true
+  }
 }
