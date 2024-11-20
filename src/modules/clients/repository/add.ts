@@ -1,5 +1,5 @@
-import Validation from '../../../tools/validation';
-import type { IAddClient } from './types';
+import Validation from '../../../tools/validation.js';
+import type { IAddClient } from './types.js';
 
 export default class AddClient implements IAddClient {
   readonly clientId: string;

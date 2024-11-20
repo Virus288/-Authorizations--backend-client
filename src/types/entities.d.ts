@@ -11,3 +11,25 @@ export interface IUserEntity {
   userId: string;
   login: string;
 }
+
+export interface ITokenEntity {
+  _id?: string | mongoose.Types.ObjectId;
+  ttl: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface IKeyEntity {
+  _id?: string | mongoose.Types.ObjectId;
+  kty: string;
+  kid: string;
+  alg: string;
+  e: string;
+  n: string;
+  d: string;
+  p: string;
+  q: string;
+  dp: string;
+  dq: string;
+  qi: string;
+}

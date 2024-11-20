@@ -69,11 +69,6 @@ export default class Middleware {
       }),
     );
 
-    // This is set here, so this route will not be logged anywhere
-    app.get('/favicon.ico', (_req, res) => {
-      res.status(404).send();
-    });
-
     // Log new req
     app.use((req, _res, next) => {
       try {

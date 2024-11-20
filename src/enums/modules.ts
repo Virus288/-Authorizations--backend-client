@@ -2,4 +2,6 @@
 export enum EModules {
   User = 'user',
   Client = 'oidcClient',
+  Token = 'token',
+  Key = 'key',
 }

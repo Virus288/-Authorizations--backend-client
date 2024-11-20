@@ -10,4 +10,5 @@ export interface IUserRepository {
   add(user: AddUser): Promise<string>;
   get(id: string): Promise<IUserEntity | null>;
   getByName(name: string): Promise<IUserEntity | null>;
+  getByUserId(iserOd: string): Promise<IUserEntity | null>;
 }

@@ -13,4 +13,7 @@ export default class UsersRepository
   async getByName(login: string): Promise<IUserEntity | null> {
     return this.model.findOne({ login } as FilterQuery<Record<string, string>>).lean();
   }
+  async getByUserId(userId: string): Promise<IUserEntity | null> {
+    return this.model.findOne({ userId } as FilterQuery<Record<string, string>>).lean();
+  }
 }

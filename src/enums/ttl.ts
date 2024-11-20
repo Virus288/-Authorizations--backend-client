@@ -2,4 +2,5 @@
 export const ETTL = {
   ExpressSession: 60 * 15,
   ExpressRateLimiter: 60,
+  UserToken: 60 * 15,
 };
