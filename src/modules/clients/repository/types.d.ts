@@ -1,5 +1,5 @@
 import type AddClient from './add.js';
-import type { IClientEntity } from '../../../types';
+import type { IClientEntity } from '../../../types/index.js';
 
 export interface IAddClient {
   clientId: string;

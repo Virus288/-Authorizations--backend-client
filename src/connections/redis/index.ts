@@ -3,7 +3,7 @@ import Log from 'simpleLogger';
 import Repository from './repository.js';
 import * as enums from '../../enums/index.js';
 import getConfig from '../../tools/configLoader.js';
-import type { IFullError, IUserSession } from '../../types/index.js';
+import type { IFullError, IUserSession, ISessionTokenData } from '../../types/index.js';
 import type { ClientRateLimitInfo } from 'express-rate-limit';
 import type { RedisClientType } from 'redis';
 
@@ -23,9 +23,14 @@ export default class Redis {
     return this._repository;
   }
 
-  async getSession(session: string): Promise<IUserSession | undefined> {
+  async getSession(session: string): Promise<IUserSession | null> {
     const data = await this.repository.getElement(`session:${session}`);
-    return data ? (JSON.parse(data) as IUserSession) : undefined;
+    return data ? (JSON.parse(data) as IUserSession) : null;
+  }
+
+  async getSessionToken(id: string): Promise<ISessionTokenData | null> {
+    const data = await this.repository.getElement(`sessionToken:${id}`);
+    return data ? (JSON.parse(data) as ISessionTokenData) : null;
   }
 
   async setExpirationDate(target: enums.ERedisTargets | string, ttl: number): Promise<void> {
@@ -47,6 +52,19 @@ export default class Redis {
     await this.setExpirationDate(`rateLimit:${ip}`, enums.ETTL.ExpressRateLimiter);
 
     return data;
+  }
+
+  async addSessionToken(id: string, sessionData: ISessionTokenData, eol: Date): Promise<void> {
+    await this.repository.addElement(`sessionToken:${id}`, JSON.stringify(sessionData));
+    await this.repository.setExpirationDate(`sessionToken:${id}`, Math.floor((eol.getTime() - Date.now()) / 1000));
+  }
+
+  async recreateSessionToken(id: string, sessionData: ISessionTokenData): Promise<void> {
+    await this.repository.addElement(`sessionToken:${id}`, JSON.stringify(sessionData));
+  }
+
+  async removeSessionToken(sessionId: string): Promise<void> {
+    return this.repository.removeElement(`sessionToken:${sessionId}`);
   }
 
   async decrementRateLimit(ip: string): Promise<void> {

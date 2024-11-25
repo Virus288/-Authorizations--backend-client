@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
@@ -20,6 +21,7 @@ export default class Middleware {
   generateMiddleware(app: Express): void {
     app.use(express.json({ limit: '10kb' }));
     app.use(express.urlencoded({ extended: true }));
+    app.use(cookieParser());
     app.use(
       cors({
         origin: getConfig().corsOrigin,
@@ -68,11 +70,6 @@ export default class Middleware {
         name: 'authClient.sess',
       }),
     );
-
-    // This is set here, so this route will not be logged anywhere
-    app.get('/favicon.ico', (_req, res) => {
-      res.status(404).send();
-    });
 
     // Log new req
     app.use((req, _res, next) => {
