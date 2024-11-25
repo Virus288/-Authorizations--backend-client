@@ -13,3 +13,8 @@ export interface ITokenData {
   iat: number;
   exp: number;
 }
+
+export interface ISessionTokenData extends ITokenData {
+  id: string;
+  ip: string[];
+}

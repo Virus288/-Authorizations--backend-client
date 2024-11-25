@@ -33,10 +33,21 @@ service.router.get('/login', limitRate, async (req: ILoginReq, res) => {
       maxAge: ETTL.UserRefreshToken * 1000,
       path: '/user/refresh',
     };
-    const { url, accessToken, refreshToken } = data as { url: string; accessToken: string; refreshToken: string };
+    const sessionOptions: CookieOptions = {
+      ...refreshOptions,
+      maxAge: ETTL.UserSessionToken * 1000,
+    };
+
+    const { url, accessToken, refreshToken, sessionToken } = data as {
+      url: string;
+      accessToken: string;
+      refreshToken: string;
+      sessionToken: string;
+    };
 
     res.cookie(ETokens.Access, accessToken, accessOptions);
     res.cookie(ETokens.Refresh, refreshToken, refreshOptions);
+    res.cookie(ETokens.SessionToken, sessionToken, sessionOptions);
     res.redirect(url);
   } catch (err) {
     handleErr(err as types.IFullError, res);

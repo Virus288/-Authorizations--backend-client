@@ -7,8 +7,17 @@ import TokenModel from '../../connections/mongo/models/token.js';
 import { ETTL } from '../../enums/index.js';
 import { InternalError, InvalidRequest } from '../../errors/index.js';
 import getConfig from '../../tools/configLoader.js';
+import State from '../../tools/state.js';
 import KeyRepository from '../keys/repository/index.js';
-import type { IIntrospection, ITokenData, ITokenEntity, IUserEntity, IUserServerTokens } from '../../types/index.js';
+import type {
+  IIntrospection,
+  ISessionTokenData,
+  ITokenData,
+  ITokenEntity,
+  IUserEntity,
+  IUserServerTokens,
+} from '../../types/index.js';
+import { randomUUID } from 'crypto';
 
 export default class TokensController {
   private readonly _userId: string;
@@ -132,5 +141,67 @@ export default class TokensController {
 
     // #TODO Interface for jwt seems to be incorrect
     return signer.update(JSON.stringify(payload)).final() as unknown as Promise<string>;
+  }
+
+  /**
+   * Create session stored in redis, which will be used after refresh token dies.
+   * @param userData User's information.
+   * @param refreshToken User's refresh token.
+   * @param ip User's ip.
+   * @returns Token's id.
+   */
+  async createSessionToken(userData: IUserEntity, refreshToken: string, ip: string): Promise<string> {
+    const tokenId = randomUUID();
+
+    const refreshTokenData = await this.checkRefreshToken(refreshToken);
+
+    if (!refreshTokenData?.active) {
+      Log.debug('Token controller', 'Refresh token is invalid');
+      throw new InvalidRequest();
+    }
+
+    const payload: ISessionTokenData = {
+      sub: userData._id as string,
+      iat: Math.floor(Date.now() / 1000),
+      exp: refreshTokenData.exp,
+      id: tokenId,
+      ip: [ip],
+    };
+
+    await State.redis.addSessionToken(tokenId, payload, new Date(refreshTokenData.exp * 1000));
+
+    return tokenId;
+  }
+
+  /**
+   * Recreate session stored in redis.
+   * @param sessionId User's session.
+   * @param ip User's ip.
+   * @returns Recreated session's id.
+   */
+  async recreateSessionToken(sessionId: string, ip: string): Promise<string | undefined> {
+    const session = await State.redis.getSessionToken(sessionId);
+    if (!session) throw new InvalidRequest();
+
+    const userTokens = await this.getTokens();
+    if (!userTokens) throw new InvalidRequest();
+
+    const refreshTokenData = await this.checkRefreshToken(userTokens.refreshToken);
+    if (!refreshTokenData) throw new InvalidRequest();
+
+    if (refreshTokenData.exp * 1000 - Date.now() <= ETTL.UserRefreshToken * 1000) {
+      // Token's live is smaller than local refresh. Do not recreate session for further use. Session should be invalid after this.
+      return undefined;
+    }
+
+    if (!session.ip.includes(ip)) session.ip.push(ip);
+
+    const tokenId = randomUUID();
+    const newSession = { ...session, id: tokenId, iat: Math.floor(Date.now() / 1000) };
+
+    await State.redis.removeSessionToken(sessionId);
+    await State.redis.recreateSessionToken(tokenId, newSession);
+
+    return tokenId;
   }
 }

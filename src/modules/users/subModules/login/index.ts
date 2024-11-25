@@ -26,10 +26,10 @@ export default class LoginController extends AbstractController<
   override async execute(
     data: LoginDto,
     req: express.Request,
-  ): Promise<{ url: string; accessToken: string; refreshToken: string } | string> {
+  ): Promise<{ url: string; accessToken: string; refreshToken: string; sessionToken: string } | string> {
     if (data.code) {
-      const { userId, tokenController } = await this.login(data, req);
-      return this.createTokens(userId, tokenController, req);
+      const { userId, tokenController, refreshToken } = await this.login(data, req);
+      return this.createTokens(userId, tokenController, req, refreshToken);
     }
 
     return this.sendToLoginPage(data, req);
@@ -67,7 +67,8 @@ export default class LoginController extends AbstractController<
     userId: string,
     tokenController: TokenController,
     req: express.Request,
-  ): Promise<{ url: string; refreshToken: string; accessToken: string }> {
+    refreshToken: string,
+  ): Promise<{ url: string; refreshToken: string; accessToken: string; sessionToken: string }> {
     const userRepo = new UsersRepository(UserModel);
 
     const userData = await userRepo.getByUserId(userId);
@@ -76,16 +77,17 @@ export default class LoginController extends AbstractController<
       throw new InvalidRequest();
     }
 
-    const refreshToken = await tokenController.createRefreshToken(userData);
+    const newRefreshToken = await tokenController.createRefreshToken(userData);
     const accessToken = await tokenController.createAccessToken(userData);
+    const sessionToken = await tokenController.createSessionToken(userData, refreshToken, req.ip!);
     const url = await this.createUrl(req);
-    return { refreshToken, accessToken, url };
+    return { refreshToken: newRefreshToken, accessToken, sessionToken, url };
   }
 
   private async login(
     data: LoginDto,
     req: express.Request,
-  ): Promise<{ userId: string; tokenController: TokenController }> {
+  ): Promise<{ userId: string; tokenController: TokenController; refreshToken: string }> {
     const oidcClientRepo = new OidcClientRepo(OidcClientModel);
     const verifier = (req.session as IUserSession).verifier!;
 
@@ -127,7 +129,9 @@ export default class LoginController extends AbstractController<
     throw new InvalidRequest();
   }
 
-  private async saveToken(tokens: IUserServerTokens): Promise<{ userId: string; tokenController: TokenController }> {
+  private async saveToken(
+    tokens: IUserServerTokens,
+  ): Promise<{ userId: string; tokenController: TokenController; refreshToken: string }> {
     const userId = await this.decodeIdToken(tokens.id_token);
     const userRepo = new UsersRepository(UserModel);
 
@@ -141,7 +145,7 @@ export default class LoginController extends AbstractController<
 
     await tokenController.addToken(tokens);
 
-    return { userId, tokenController };
+    return { userId, tokenController, refreshToken: tokens.refresh_token };
   }
 
   private async fetchCerts(): Promise<jose.JWK.KeyStore> {
