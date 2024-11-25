@@ -45,9 +45,17 @@ jobs:
         run: |
           mkdir -p config
           echo '{
-            "port": 200,
-            "myAddress": "http://localhost:8080",
-            "corsOrigin": ["http://localhost:3005"]
+            "port": 80,
+            "mongoURI": "mongodb://user:pass@ser:port",
+            "myAddress": "http://localhost",
+            "authorizationAddress": "http://localhost:3000",
+            "redisURI": "redis://user:password@adress:port",
+            "corsOrigin": ["http://localhost"],
+            "session": {
+              "secret": "sessionSecret",
+              "secured": false,
+              "trustProxy": true
+            }
           }' > config/devConfig.json
           cp config/devConfig.json config/prodConfig.json
           cp config/devConfig.json config/testConfig.json
