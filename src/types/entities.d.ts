@@ -6,6 +6,14 @@ export interface IClientEntity {
   redirectUri: string;
 }
 
+export interface IOidcClientEntity {
+  _id?: string | mongoose.Types.ObjectId;
+  clientId: string;
+  clientSecret: string;
+  clientGrant: string;
+  redirectUri: string;
+}
+
 export interface IUserEntity {
   _id?: string | mongoose.Types.ObjectId;
   userId: string;
@@ -14,6 +22,7 @@ export interface IUserEntity {
 
 export interface ITokenEntity {
   _id?: string | mongoose.Types.ObjectId;
+  userId: string;
   ttl: string;
   accessToken: string;
   refreshToken: string;

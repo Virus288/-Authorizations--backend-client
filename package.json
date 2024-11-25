@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "chalk": "5.3.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "4.21.1",
     "express-rate-limit": "^7.4.1",
@@ -45,6 +46,7 @@
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.9.0",
     "@jest/globals": "29.7.0",
+    "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
     "@types/express": "5.0.0",
     "@types/express-rate-limit": "^6.0.2",

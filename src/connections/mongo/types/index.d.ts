@@ -1,7 +1,11 @@
-import type { IClientEntity, ITokenEntity, IUserEntity, IKeyEntity } from '../../../types/index.js';
+import type { IClientEntity, ITokenEntity, IUserEntity, IKeyEntity, IOidcClientEntity } from '../../../types/index.js';
 import type mongoose from 'mongoose';
 
 export interface IClient extends IClientEntity, mongoose.Document {
+  _id: mongoose.Types.ObjectId;
+}
+
+export interface IOidcClient extends IOidcClientEntity, mongoose.Document {
   _id: mongoose.Types.ObjectId;
 }
 

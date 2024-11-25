@@ -1,5 +1,5 @@
 import Router from './index.js';
-import { ETTL } from '../../../../../enums/ttl.js';
+import { ETTL, ETokens } from '../../../../../enums/index.js';
 import handleErr from '../../../../../errors/handler.js';
 import ClientsRepository from '../../../../../modules/clients/repository/index.js';
 import Controller from '../../../../../modules/users/subModules/login/index.js';
@@ -20,13 +20,23 @@ service.router.get('/login', limitRate, async (req: ILoginReq, res) => {
     }
 
     const options: CookieOptions = {
-      maxAge: ETTL.UserToken * 1000,
       httpOnly: process.env.NODE_ENV === 'production' ? true : false,
       secure: process.env.NODE_ENV === 'production' ? true : false,
+      sameSite: 'strict',
     };
-    const { url, cookie } = data as { url: string; cookie: string };
+    const accessOptions: CookieOptions = {
+      ...options,
+      maxAge: ETTL.UserAccessToken * 1000,
+    };
+    const refreshOptions: CookieOptions = {
+      ...options,
+      maxAge: ETTL.UserRefreshToken * 1000,
+      path: '/user/refresh',
+    };
+    const { url, accessToken, refreshToken } = data as { url: string; accessToken: string; refreshToken: string };
 
-    res.cookie('authClient.token', cookie, options);
+    res.cookie(ETokens.Access, accessToken, accessOptions);
+    res.cookie(ETokens.Refresh, refreshToken, refreshOptions);
     res.redirect(url);
   } catch (err) {
     handleErr(err as types.IFullError, res);

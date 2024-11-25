@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
@@ -20,6 +21,7 @@ export default class Middleware {
   generateMiddleware(app: Express): void {
     app.use(express.json({ limit: '10kb' }));
     app.use(express.urlencoded({ extended: true }));
+    app.use(cookieParser());
     app.use(
       cors({
         origin: getConfig().corsOrigin,

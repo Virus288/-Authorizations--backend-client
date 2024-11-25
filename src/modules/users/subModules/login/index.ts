@@ -1,31 +1,37 @@
 import jose from 'node-jose';
 import Log from 'simpleLogger';
-import KeyModel from '../../../../connections/mongo/models/keys.js';
-import TokenModel from '../../../../connections/mongo/models/token.js';
+import OidcClientModel from '../../../../connections/mongo/models/oidcClient.js';
 import UserModel from '../../../../connections/mongo/models/user.js';
-import { InternalError, InvalidRequest } from '../../../../errors/index.js';
+import { EClientGrants } from '../../../../enums/index.js';
+import { InvalidRequest } from '../../../../errors/index.js';
 import AbstractController from '../../../../tools/abstractions/controller.js';
 import getConfig from '../../../../tools/configLoader.js';
 import { generateCodeChallengeFromVerifier, generateCodeVerifier } from '../../../../tools/crypt.js';
 import { generateRandomName } from '../../../../utils/index.js';
-import KeysRepository from '../../../keys/repository/index.js';
-import AddToken from '../../../tokens/repository/add.js';
-import TokenRepository from '../../../tokens/repository/index.js';
+import OidcClientRepo from '../../../oidcClients/repository/index.js';
+import TokenController from '../../../tokens/index.js';
 import UsersRepository from '../../repository/index.js';
 import type LoginDto from './dto.js';
-import type { IUserSession } from '../../../../types/requests.js';
-import type { IUserServerTokens } from '../../../../types/user.js';
+import type { IUserSession, IUserServerTokens } from '../../../../types/index.js';
 import type ClientsRepository from '../../../clients/repository/index.js';
 import type express from 'express';
+import type mongoose from 'mongoose';
 
 export default class LoginController extends AbstractController<
   LoginDto,
-  { url: string; cookie: string } | string,
+  { url: string; accessToken: string; refreshToken: string } | string,
   ClientsRepository,
   express.Request
 > {
-  override async execute(data: LoginDto, req: express.Request): Promise<{ url: string; cookie: string } | string> {
-    if (data.code) return this.login(data, req);
+  override async execute(
+    data: LoginDto,
+    req: express.Request,
+  ): Promise<{ url: string; accessToken: string; refreshToken: string } | string> {
+    if (data.code) {
+      const { userId, tokenController } = await this.login(data, req);
+      return this.createTokens(userId, tokenController, req);
+    }
+
     return this.sendToLoginPage(data, req);
   }
 
@@ -57,18 +63,48 @@ export default class LoginController extends AbstractController<
     return `${getConfig().authorizationAddress}/auth?${params.toString()}`;
   }
 
-  private async login(data: LoginDto, req: express.Request): Promise<{ url: string; cookie: string }> {
+  private async createTokens(
+    userId: string,
+    tokenController: TokenController,
+    req: express.Request,
+  ): Promise<{ url: string; refreshToken: string; accessToken: string }> {
+    const userRepo = new UsersRepository(UserModel);
+
+    const userData = await userRepo.getByUserId(userId);
+    if (!userData) {
+      Log.error('Login', 'User logged in, but there is no data related to him. Error ?');
+      throw new InvalidRequest();
+    }
+
+    const refreshToken = await tokenController.createRefreshToken(userData);
+    const accessToken = await tokenController.createAccessToken(userData);
+    const url = await this.createUrl(req);
+    return { refreshToken, accessToken, url };
+  }
+
+  private async login(
+    data: LoginDto,
+    req: express.Request,
+  ): Promise<{ userId: string; tokenController: TokenController }> {
+    const oidcClientRepo = new OidcClientRepo(OidcClientModel);
     const verifier = (req.session as IUserSession).verifier!;
 
     delete (req.session as IUserSession).verifier;
     delete (req.session as IUserSession).nonce;
 
+    // Get one client - this should probably include some custom logic
+    const oidcClient = await oidcClientRepo.getByGrant(EClientGrants.AuthorizationCode);
+
+    Log.debug('Login', 'Oidc client to use', oidcClient);
+
+    if (!oidcClient) throw new InvalidRequest();
+
     const body = new URLSearchParams({
-      client_id: 'oidcClient',
-      client_secret: '4uqMOFQ97b',
+      client_id: oidcClient.clientId,
+      client_secret: oidcClient.clientSecret,
       code: data.code!,
-      grant_type: 'authorization_code',
-      redirect_uri: 'http://localhost:5004/user/login',
+      grant_type: oidcClient.clientGrant,
+      redirect_uri: oidcClient.redirectUri,
       code_verifier: verifier,
     });
 
@@ -83,8 +119,7 @@ export default class LoginController extends AbstractController<
     });
 
     if (res.ok) {
-      const userId = await this.saveToken((await res.json()) as IUserServerTokens);
-      return this.createToken(userId, req);
+      return this.saveToken((await res.json()) as IUserServerTokens);
     }
 
     const err = await res.json();
@@ -92,20 +127,21 @@ export default class LoginController extends AbstractController<
     throw new InvalidRequest();
   }
 
-  private async saveToken(tokens: IUserServerTokens): Promise<string> {
-    const repo = new TokenRepository(TokenModel);
-
+  private async saveToken(tokens: IUserServerTokens): Promise<{ userId: string; tokenController: TokenController }> {
     const userId = await this.decodeIdToken(tokens.id_token);
+    const userRepo = new UsersRepository(UserModel);
 
-    const newToken = new AddToken({
-      ttl: tokens.expires_in.toString(),
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      userId,
-    });
-    await repo.add(newToken);
+    const userData = await userRepo.getByUserId(userId);
+    if (!userData) {
+      Log.error('Login', 'User logged in, but there is no data related to him. Error ?');
+      throw new InvalidRequest();
+    }
 
-    return userId;
+    const tokenController = new TokenController((userData._id as mongoose.Types.ObjectId).toString());
+
+    await tokenController.addToken(tokens);
+
+    return { userId, tokenController };
   }
 
   private async fetchCerts(): Promise<jose.JWK.KeyStore> {
@@ -151,37 +187,10 @@ export default class LoginController extends AbstractController<
     return parsed.sub;
   }
 
-  private async createToken(userId: string, req: express.Request): Promise<{ url: string; cookie: string }> {
-    const repo = new KeysRepository(KeyModel);
-    const userRepo = new UsersRepository(UserModel);
-
-    const keys = await repo.getAll();
-    if (keys.length === 0) {
-      Log.error('Login', 'Missing keys!');
-      throw new InternalError();
-    }
-
-    const keystore = await jose.JWK.asKeyStore({ keys });
-    const key = keystore.get(keys[0]!.kid);
-
-    const userData = await userRepo.getByUserId(userId);
-    if (!userData) {
-      Log.error('Login', 'User logged in, but there is no data related to him. Error ?');
-      throw new InvalidRequest();
-    }
-
-    const payload = {
-      sub: userData._id,
-      iat: Math.floor(Date.now() / 1000),
-    };
-
-    const signer = jose.JWS.createSign({ format: 'compact', fields: { alg: 'RS256', kid: key.kid } }, key);
-
-    const jwt = await signer.update(JSON.stringify(payload)).final();
+  private async createUrl(req: express.Request): Promise<string> {
     const client = await this.repository.getByName((req.session as IUserSession).client!);
     delete (req.session as IUserSession).client;
 
-    // #TODO Interface for jwt seems to be incorrect
-    return { cookie: jwt as unknown as string, url: client!.redirectUri };
+    return client!.redirectUri;
   }
 }
