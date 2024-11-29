@@ -18,6 +18,10 @@ export const oidcClientSchema = new mongoose.Schema({
     type: String,
     required: [true, 'RedirectUris not provided'],
   },
+  redirectLogoutUrl: {
+    type: String,
+    required: [true, 'RedirectUris not provided'],
+  },
 });
 
 const OidcClient = mongoose.model<IOidcClient>('OidcClients', oidcClientSchema, 'oidcClients');
