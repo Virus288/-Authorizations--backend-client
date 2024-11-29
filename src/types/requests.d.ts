@@ -13,4 +13,5 @@ export interface IUserSession extends Session {
   nonce?: string;
   client?: string;
   verifier?: string;
+  logout?: boolean;
 }

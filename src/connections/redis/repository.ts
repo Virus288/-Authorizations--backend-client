@@ -28,6 +28,10 @@ export default class Repository {
     return this.client.keys(target);
   }
 
+  async getTTl(target: string): Promise<number> {
+    return this.client.ttl(target);
+  }
+
   async setExpirationDate(target: enums.ERedisTargets | string, time: number): Promise<void> {
     await this.client.expire(target, time);
   }
