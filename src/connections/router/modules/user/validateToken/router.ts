@@ -1,7 +1,7 @@
 import Router from './index.js';
 import handleErr from '../../../../../errors/handler.js';
 import Controller from '../../../../../modules/users/subModules/validateToken/index.js';
-import limitRate from '../../../utils.js';
+import limitRate from '../../../utils/index.js';
 import type * as types from '../../../../../types/index.js';
 
 const service = new Router(new Controller(null));

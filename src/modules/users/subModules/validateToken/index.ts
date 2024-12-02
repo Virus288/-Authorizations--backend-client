@@ -38,7 +38,7 @@ export default class ValidateTokenController extends AbstractController<
     return {
       login: user!.login,
       tokenTTL: new Date(tokenData.exp * 1000).toString(),
-      realTokenTTL: refreshTokenData ? new Date(refreshTokenData.exp * 1000).toString() : 'Dead',
+      realTokenTTL: refreshTokenData?.active ? new Date(refreshTokenData.exp * 1000).toString() : 'Dead',
     };
   }
 }

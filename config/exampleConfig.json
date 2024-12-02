@@ -5,6 +5,7 @@
   "authorizationAddress": "http://localhost:2000",
   "redisURI": "redis://user:password@adress:port",
   "corsOrigin": ["http://localhost"],
+  "myDomain": ".domain.com",
   "session": {
     "secret": "sessionSecret",
     "secured": false,

@@ -76,7 +76,7 @@ export default class Redis {
     await this.repository.setExpirationDate(`sessionToken:${id}`, Math.floor((eol.getTime() - Date.now()) / 1000));
     await this.repository.addElement(`sessionTokensId:${sessionData.sub}`, id);
     await this.repository.setExpirationDate(
-      `sessionTokenId:${sessionData.sub}`,
+      `sessionTokensId:${sessionData.sub}`,
       Math.floor((eol.getTime() - Date.now()) / 1000),
     );
   }

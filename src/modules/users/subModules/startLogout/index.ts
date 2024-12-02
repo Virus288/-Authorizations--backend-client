@@ -14,10 +14,9 @@ export default class LogoutController extends AbstractController<StartLogoutDto,
     const tokenData = await TokenController.validateToken(cookie);
     const tokenController = new TokenController(tokenData.sub);
 
-    await tokenController.logout();
-
     (req.session as IUserSession).logout = true;
     (req.session as IUserSession).client = dto.client;
+    (req.session as IUserSession).userId = tokenData.sub;
 
     return tokenController.logoutOidc();
   }
