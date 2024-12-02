@@ -1,4 +1,3 @@
-import jose from 'node-jose';
 import Log from 'simpleLogger';
 import UserModel from '../../../../connections/mongo/models/user.js';
 import { ETokens } from '../../../../enums/tokens.js';
@@ -7,7 +6,7 @@ import AbstractController from '../../../../tools/abstractions/controller.js';
 import State from '../../../../tools/state.js';
 import TokenController from '../../../tokens/index.js';
 import UsersRepository from '../../repository/index.js';
-import type { IUserEntity, ITokenData } from '../../../../types/index.js';
+import type { IUserEntity } from '../../../../types/index.js';
 import type express from 'express';
 
 export default class RefreshTokenController extends AbstractController<
@@ -37,22 +36,16 @@ export default class RefreshTokenController extends AbstractController<
     if (refreshToken) return this.validateRefreshToken(refreshToken);
     if (sessionToken) return this.validateSessionToken(sessionToken, req.ip!);
 
+    Log.debug('Refresh token', 'No token provided');
     throw new InvalidRequest();
   }
 
   private async validateRefreshToken(token: string): Promise<string> {
-    const key = await TokenController.getKey(token);
+    Log.debug('Refresh token - validate refresh token', token);
+    const tokenData = await TokenController.validateToken(token);
+    const tokenController = new TokenController(tokenData.sub);
 
-    const result = await jose.JWS.createVerify(key).verify(token);
-    const parsed = JSON.parse(result.payload.toString()) as ITokenData;
-
-    if (new Date(parsed.exp * 1000).getTime() - Date.now() < 0) {
-      Log.debug('Refresh', 'Token expired');
-      throw new InvalidRequest();
-    }
-    const tokenController = new TokenController(parsed.sub);
-
-    const userData = await this.getUserData(parsed.sub);
+    const userData = await this.getUserData(tokenData.sub);
     const accessToken = await tokenController.createAccessToken(userData);
 
     return accessToken;
@@ -62,10 +55,18 @@ export default class RefreshTokenController extends AbstractController<
     token: string,
     ip: string,
   ): Promise<{ sessionToken: string | undefined; refreshToken: string; accessToken: string }> {
-    const session = await State.redis.getSessionToken(token);
-    if (!session) throw new InvalidRequest();
+    Log.debug('Refresh token - validate session', token);
 
-    if (!session.ip.includes(ip)) throw new InvalidRequest(); // Assuming that token got stolen instead of simply reauthenticating user. This line will be annoying, but safer.
+    const session = await State.redis.getSessionToken(token);
+    if (!session) {
+      Log.debug('Refresh token', 'No session');
+      throw new InvalidRequest();
+    }
+
+    if (!session.ip.includes(ip)) {
+      Log.debug('Refresh token', 'No client on the list');
+      throw new InvalidRequest(); // Assuming that token got stolen instead of simply reauthenticating user. This line will be annoying, but safer.
+    }
 
     const userData = await this.repository.get(session.sub);
     if (!userData) {

@@ -17,6 +17,7 @@ export default class OidcClientsRepository
       .select({ __v: false })
       .lean();
   }
+
   async getByName(clientId: string): Promise<IOidcClientEntity | null> {
     return this.model
       .findOne({ clientId } as FilterQuery<Record<string, string | mongoose.Types.ObjectId>>)

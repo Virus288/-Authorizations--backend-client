@@ -11,7 +11,7 @@ export default class TokenRepository
   implements ITokenRepository
 {
   async getByUserId(userId: string): Promise<ITokenEntity | null> {
-    return this.model.findOne({ userId } as FilterQuery<Record<string, string>>).lean();
+    return this.model.findOne({ userId } as FilterQuery<Record<string, string>>, null, { sort: { _id: -1 } }).lean();
   }
 
   async removeByUserId(userId: string): Promise<void> {

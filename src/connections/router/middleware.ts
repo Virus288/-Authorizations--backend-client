@@ -22,6 +22,7 @@ export default class Middleware {
     app.use(express.json({ limit: '10kb' }));
     app.use(express.urlencoded({ extended: true }));
     app.use(cookieParser());
+    if (getConfig().session.trustProxy) app.set('trust proxy', 1);
     app.use(
       cors({
         origin: getConfig().corsOrigin,

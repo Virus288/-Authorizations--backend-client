@@ -27,6 +27,7 @@ export default class StartRegisterController extends AbstractController<
     const params = new URLSearchParams({
       client_id: 'register',
       redirect_uri: `${getConfig().myAddress}/user/register/finish`,
+      home: client.failUrl,
       nonce,
     });
 

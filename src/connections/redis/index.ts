@@ -25,12 +25,29 @@ export default class Redis {
 
   async getSession(session: string): Promise<IUserSession | null> {
     const data = await this.repository.getElement(`session:${session}`);
+
     return data ? (JSON.parse(data) as IUserSession) : null;
   }
 
   async getSessionToken(id: string): Promise<ISessionTokenData | null> {
     const data = await this.repository.getElement(`sessionToken:${id}`);
+
     return data ? (JSON.parse(data) as ISessionTokenData) : null;
+  }
+
+  async getSessionTokenId(userId: string): Promise<string | null> {
+    return this.repository.getElement(`sessionTokensId:${userId}`);
+  }
+
+  async getSessionTokenTTL(sessionId: string): Promise<number> {
+    return this.repository.getTTl(`sessionToken:${sessionId}`);
+  }
+
+  async getUserToken(userId: string): Promise<{ accessToken: string | null; refreshToken: string | null }> {
+    const accessToken = await this.repository.getElement(`accessToken:${userId}`);
+    const refreshToken = await this.repository.getElement(`refreshToken:${userId}`);
+
+    return { accessToken, refreshToken };
   }
 
   async setExpirationDate(target: enums.ERedisTargets | string, ttl: number): Promise<void> {
@@ -57,14 +74,52 @@ export default class Redis {
   async addSessionToken(id: string, sessionData: ISessionTokenData, eol: Date): Promise<void> {
     await this.repository.addElement(`sessionToken:${id}`, JSON.stringify(sessionData));
     await this.repository.setExpirationDate(`sessionToken:${id}`, Math.floor((eol.getTime() - Date.now()) / 1000));
+    await this.repository.addElement(`sessionTokensId:${sessionData.sub}`, id);
+    await this.repository.setExpirationDate(
+      `sessionTokensId:${sessionData.sub}`,
+      Math.floor((eol.getTime() - Date.now()) / 1000),
+    );
   }
 
-  async recreateSessionToken(id: string, sessionData: ISessionTokenData): Promise<void> {
-    await this.repository.addElement(`sessionToken:${id}`, JSON.stringify(sessionData));
+  async addAccessToken(userId: string, token: string): Promise<void> {
+    await this.repository.addElement(`accessToken:${userId}`, token);
+    await this.repository.setExpirationDate(`accessToken:${userId}`, enums.ETTL.UserAccessToken);
+  }
+
+  async addRefreshToken(userId: string, token: string): Promise<void> {
+    await this.repository.addElement(`refreshToken:${userId}`, token);
+    await this.repository.setExpirationDate(`refreshToken:${userId}`, enums.ETTL.UserRefreshToken);
+  }
+
+  async removeAccessToken(userId: string): Promise<void> {
+    await this.repository.removeElement(`accessToken:${userId}`);
+  }
+
+  async removeRefreshToken(userId: string): Promise<void> {
+    await this.repository.removeElement(`refreshToken:${userId}`);
   }
 
   async removeSessionToken(sessionId: string): Promise<void> {
-    return this.repository.removeElement(`sessionToken:${sessionId}`);
+    await this.repository.removeElement(`sessionToken:${sessionId}`);
+  }
+
+  async removeSessionTokenId(userId: string): Promise<void> {
+    await this.repository.removeElement(`sessionTokensId:${userId}`);
+  }
+
+  async removeUserTokens(userId: string): Promise<void> {
+    await this.removeAccessToken(userId);
+    await this.removeRefreshToken(userId);
+    const sessionTokenId = await this.getSessionTokenId(userId);
+    if (sessionTokenId) {
+      await this.removeSessionToken(sessionTokenId);
+      await this.removeSessionTokenId(userId);
+    }
+  }
+
+  async addUserTokens(userId: string, accessToken: string, refreshToken: string): Promise<void> {
+    await this.addAccessToken(userId, accessToken);
+    await this.addRefreshToken(userId, refreshToken);
   }
 
   async decrementRateLimit(ip: string): Promise<void> {

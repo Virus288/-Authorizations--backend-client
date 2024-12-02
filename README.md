@@ -122,6 +122,7 @@ Each config includes few elements:
   "mongoURI": "mongodb://user:password@adress:port",
   "authorizationAddress": "http://localhost",
   "redisURI": "redis://:password@adress:port",
+  "myDomain": ".domain.com",
   "session": {
     "secret": "superSecretPasswordPleaseDoNotLeakIt",
     "secured": true,
@@ -142,6 +143,8 @@ mongoURI is address for mongoDB
 authorizationAddress is address for authorization server, which should be utilized
 
 redisURI is address for redis, which is used to cache data like user sessions and connection params
+
+myDomain is domain, that this application will work on. It should be prefixed with dot. This config is used to set cookies, for production for whole domain with subdomains. Either add some random domain in /etc/hosts, or comment all ( atm 2 ) occurrences.
 
 session is config for express-session.
 - Secret is secret, which should be used to generate cookies for session
@@ -181,4 +184,3 @@ This application is ready for probing in k8s / other systems. You can find liven
 ### 4.5 Connections and access
 
 When I write my apps, I prefer to have some kind of global state, which allows my app to have access to every external connection from any point in code. You can find this "state" in `/src/tools/state`. This state is used to keep external connections and to manage them. For example, instead of dependency injecting each connection to each route, I prefer to just access them from that global state 
-

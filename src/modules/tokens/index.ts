@@ -3,14 +3,17 @@ import Log from 'simpleLogger';
 import AddToken from './repository/add.js';
 import TokenRepository from './repository/index.js';
 import KeyModel from '../../connections/mongo/models/keys.js';
+import OidcClientModel from '../../connections/mongo/models/oidcClient.js';
 import TokenModel from '../../connections/mongo/models/token.js';
-import { ETTL } from '../../enums/index.js';
+import { EClientGrants, ETTL, ETokenType } from '../../enums/index.js';
 import { InternalError, InvalidRequest } from '../../errors/index.js';
 import getConfig from '../../tools/configLoader.js';
 import State from '../../tools/state.js';
 import KeyRepository from '../keys/repository/index.js';
+import OidcClientsRepository from '../oidcClients/repository/index.js';
 import type {
   IIntrospection,
+  IOidcClientEntity,
   ISessionTokenData,
   ITokenData,
   ITokenEntity,
@@ -74,6 +77,26 @@ export default class TokensController {
     return this.repo.getByUserId(this.userId);
   }
 
+  static async validateToken(token: string): Promise<ITokenData> {
+    const key = await this.getKey(token);
+
+    const result = await jose.JWS.createVerify(key).verify(token);
+    const parsed = JSON.parse(result.payload.toString()) as ITokenData;
+
+    if (new Date(parsed.exp * 1000).getTime() - Date.now() < 0) {
+      Log.debug('Verify', 'Token expired');
+      throw new InvalidRequest();
+    }
+
+    const redisTokens = await State.redis.getUserToken(parsed.sub);
+    if (!redisTokens.accessToken) {
+      Log.debug('Verify', 'Missing token in redis');
+      throw new InvalidRequest();
+    }
+
+    return parsed;
+  }
+
   async addToken(tokens: IUserServerTokens): Promise<void> {
     const newToken = new AddToken({
       ttl: tokens.expires_in.toString(),
@@ -126,7 +149,11 @@ export default class TokensController {
     const signer = jose.JWS.createSign({ format: 'compact', fields: { alg: 'RS256', kid: key.kid } }, key);
 
     // #TODO Interface for jwt seems to be incorrect
-    return signer.update(JSON.stringify(payload)).final() as unknown as Promise<string>;
+    const token = (await signer.update(JSON.stringify(payload)).final()) as unknown as string;
+    await State.redis.removeAccessToken(userData._id as string);
+    await State.redis.addAccessToken(userData._id as string, token);
+
+    return token;
   }
 
   async createRefreshToken(userData: IUserEntity): Promise<string> {
@@ -140,7 +167,12 @@ export default class TokensController {
     const signer = jose.JWS.createSign({ format: 'compact', fields: { alg: 'RS256', kid: key.kid } }, key);
 
     // #TODO Interface for jwt seems to be incorrect
-    return signer.update(JSON.stringify(payload)).final() as unknown as Promise<string>;
+    const token = (await signer.update(JSON.stringify(payload)).final()) as unknown as string;
+
+    await State.redis.removeRefreshToken(userData._id as string);
+    await State.redis.addRefreshToken(userData._id as string, token);
+
+    return token;
   }
 
   /**
@@ -173,6 +205,36 @@ export default class TokensController {
     return tokenId;
   }
 
+  async logout(): Promise<void> {
+    await State.redis.removeUserTokens(this.userId);
+  }
+
+  async logoutOidc(): Promise<string> {
+    const userTokens = await this.getTokens();
+    const clientRepo = new OidcClientsRepository(OidcClientModel);
+    const tokenRepo = new TokenRepository(TokenModel);
+
+    // Get one client - this should probably include some custom logic
+    const client = await clientRepo.getByGrant(EClientGrants.AuthorizationCode);
+    if (!client) throw new InvalidRequest();
+
+    if (userTokens) {
+      await this.revokeToken(userTokens.refreshToken, ETokenType.Refresh, client);
+      await this.revokeToken(userTokens.accessToken, ETokenType.Access, client);
+    }
+
+    const server = getConfig().authorizationAddress;
+
+    const params = new URLSearchParams({
+      post_logout_redirect_uri: client.redirectLogoutUrl,
+      client_id: client.clientId,
+    }).toString();
+
+    await tokenRepo.removeByUserId(this.userId);
+
+    return `${server}/session/end?${params}`;
+  }
+
   /**
    * Recreate session stored in redis.
    * @param sessionId User's session.
@@ -199,9 +261,37 @@ export default class TokensController {
     const tokenId = randomUUID();
     const newSession = { ...session, id: tokenId, iat: Math.floor(Date.now() / 1000) };
 
+    const ttl = await State.redis.getSessionTokenTTL(sessionId);
     await State.redis.removeSessionToken(sessionId);
-    await State.redis.recreateSessionToken(tokenId, newSession);
+    await State.redis.removeSessionTokenId(userTokens.userId);
+    await State.redis.addSessionToken(tokenId, newSession, new Date(Date.now() + ttl * 1000));
 
     return tokenId;
+  }
+
+  private async revokeToken(token: string, tokenType: ETokenType, client: IOidcClientEntity): Promise<void> {
+    const body = new URLSearchParams({
+      token,
+      type_hint: tokenType,
+      client_id: client.clientId,
+      client_secret: client.clientSecret,
+    });
+
+    const apiUrl = getConfig().authorizationAddress;
+    const homeUrl = getConfig().myAddress;
+    const res = await fetch(`${apiUrl}/token/revocation`, {
+      method: 'POST',
+      body,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Access-Control-Allow-Origin': homeUrl,
+      },
+    });
+
+    if (res.ok) {
+      return;
+    }
+
+    Log.debug('Token controller', 'Server did not respond with 200 on token revocation. Token possibly already dead');
   }
 }

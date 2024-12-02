@@ -1,4 +1,3 @@
-import jose from 'node-jose';
 import Log from 'simpleLogger';
 import UserModel from '../../../../connections/mongo/models/user.js';
 import { ETokens } from '../../../../enums/tokens.js';
@@ -6,7 +5,7 @@ import { InvalidRequest } from '../../../../errors/index.js';
 import AbstractController from '../../../../tools/abstractions/controller.js';
 import TokenController from '../../../tokens/index.js';
 import UsersRepository from '../../repository/index.js';
-import type { ITokenData, IIntrospection } from '../../../../types/index.js';
+import type { IIntrospection } from '../../../../types/index.js';
 import type express from 'express';
 
 export default class ValidateTokenController extends AbstractController<
@@ -22,19 +21,11 @@ export default class ValidateTokenController extends AbstractController<
     Log.debug('Verify', `User token ${cookie}`);
     if (!cookie) throw new InvalidRequest();
 
-    const key = await TokenController.getKey(cookie);
+    const tokenData = await TokenController.validateToken(cookie);
 
-    const result = await jose.JWS.createVerify(key).verify(cookie);
-    const parsed = JSON.parse(result.payload.toString()) as ITokenData;
+    const user = await new UsersRepository(UserModel).get(tokenData.sub);
 
-    if (new Date(parsed.exp * 1000).getTime() - Date.now() < 0) {
-      Log.debug('Verify', 'Token expired');
-      throw new InvalidRequest();
-    }
-
-    const user = await new UsersRepository(UserModel).get(parsed.sub);
-
-    const tokenController = new TokenController(parsed.sub);
+    const tokenController = new TokenController(tokenData.sub);
 
     const userTokens = await tokenController.getTokens();
     let refreshTokenData: IIntrospection | null = null;
@@ -46,8 +37,8 @@ export default class ValidateTokenController extends AbstractController<
 
     return {
       login: user!.login,
-      tokenTTL: new Date(parsed.exp * 1000).toString(),
-      realTokenTTL: refreshTokenData ? new Date(refreshTokenData.exp * 1000).toString() : 'Dead',
+      tokenTTL: new Date(tokenData.exp * 1000).toString(),
+      realTokenTTL: refreshTokenData?.active ? new Date(refreshTokenData.exp * 1000).toString() : 'Dead',
     };
   }
 }

@@ -42,13 +42,6 @@ export default class FakeRedis extends Redis {
     })
   }
 
-  override async recreateSessionToken(id: string, sessionData: ISessionTokenData): Promise<void> {
-    return new Promise(resolve => {
-      this.sessionTokens[id] = sessionData
-      resolve()
-    })
-  }
-
   override async removeSessionToken(id: string): Promise<void> {
     return new Promise(resolve => {
       delete this.sessionTokens[id]

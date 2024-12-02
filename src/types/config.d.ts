@@ -5,6 +5,7 @@ export interface IConfigInterface {
   myAddress: string;
   authorizationAddress: string;
   redisURI: string;
+  myDomain: string;
   session: {
     secret: string;
     secured: boolean;

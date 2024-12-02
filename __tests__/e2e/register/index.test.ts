@@ -82,7 +82,8 @@ describe('Generic tests', () => {
       it(`Start`, async () => {
         const client = new Client({
           clientId: 'register',
-          redirectUri: 'http://127.0.0.1/register'
+          redirectUri: 'http://127.0.0.1/register',
+          failUri: "http://127.0.0.1/register"
         })
         await client.save()
 
