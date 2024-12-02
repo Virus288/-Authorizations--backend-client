@@ -3,7 +3,7 @@ import handleErr from '../../../../../errors/handler.js';
 import UsersRepository from '../../../../../modules/users/repository/index.js';
 import Controller from '../../../../../modules/users/subModules/finishRegister/index.js';
 import UserModel from '../../../../mongo/models/user.js';
-import limitRate from '../../../utils.js';
+import limitRate from '../../../utils/index.js';
 import type { IFinishRegisterReq } from './types.js';
 import type * as types from '../../../../../types/index.js';
 
