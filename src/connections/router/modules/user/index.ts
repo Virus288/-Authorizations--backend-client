@@ -2,6 +2,7 @@ import finishLogout from './finishLogout/router.js';
 import finishRegister from './finishRegister/router.js';
 import login from './login/router.js';
 import refresh from './refreshToken/router.js';
+import removeAccount from './removeAccount/router.js';
 import startLogout from './startLogout/router.js';
 import startRegister from './startRegister/router.js';
 import validate from './validateToken/router.js';
@@ -21,5 +22,6 @@ export default function initUserRoutes(router: Router): void {
     .use(prefix, validate.router)
     .use(prefix, startLogout.router)
     .use(prefix, finishLogout.router)
+    .use(prefix, removeAccount.router)
     .use(prefix, refresh.router);
 }

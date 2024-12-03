@@ -50,8 +50,11 @@ export default class LoginController extends AbstractController<
     (req.session as IUserSession).client = client.clientId;
     (req.session as IUserSession).verifier = verifier;
 
+    const oidcClientRepo = new OidcClientRepo(OidcClientModel);
+    const oidcClient = await oidcClientRepo.getByGrant(EClientGrants.AuthorizationCode);
+
     const params = new URLSearchParams({
-      client_id: 'oidcClient',
+      client_id: oidcClient!.clientId,
       redirect_uri: `${getConfig().myAddress}/user/login`,
       nonce,
       response_type: 'code',

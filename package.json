@@ -1,6 +1,6 @@
 {
   "name": "authorizationsBackendClient",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Backend client for my authorizations server - oAuth server",
   "productName": "AuthorizationsBackendClient",
   "author": "https://github.com/Virus288",
@@ -31,7 +31,7 @@
     "express-rate-limit": "^7.4.1",
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
-    "mongoose": "8.7.0",
+    "mongoose": "8.8.3",
     "node-jose": "^2.2.0",
     "redis": "^4.7.0",
     "simpleLogger": "github:Virus288/SimpleLogger",

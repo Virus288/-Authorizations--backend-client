@@ -11,4 +11,5 @@ export interface IUserRepository {
   get(id: string): Promise<IUserEntity | null>;
   getByName(name: string): Promise<IUserEntity | null>;
   getByUserId(iserOd: string): Promise<IUserEntity | null>;
+  removeById(userId: string): Promise<void>;
 }

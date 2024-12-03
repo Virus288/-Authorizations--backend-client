@@ -16,4 +16,7 @@ export default class UsersRepository
   async getByUserId(userId: string): Promise<IUserEntity | null> {
     return this.model.findOne({ userId } as FilterQuery<Record<string, string>>).lean();
   }
+  async removeById(userId: string): Promise<void> {
+    await this.model.findOneAndDelete({ userId } as FilterQuery<Record<string, string>>);
+  }
 }

@@ -44,6 +44,7 @@ export default class Redis {
   }
 
   async getUserToken(userId: string): Promise<{ accessToken: string | null; refreshToken: string | null }> {
+    Log.debug('Redis', `Getting tokens for user ${userId}`);
     const accessToken = await this.repository.getElement(`accessToken:${userId}`);
     const refreshToken = await this.repository.getElement(`refreshToken:${userId}`);
 
