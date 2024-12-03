@@ -1,6 +1,6 @@
 {
   "name": "authorizationsBackendClient",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Backend client for my authorizations server - oAuth server",
   "productName": "AuthorizationsBackendClient",
   "author": "https://github.com/Virus288",

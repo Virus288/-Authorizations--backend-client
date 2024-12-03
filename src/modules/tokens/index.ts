@@ -89,7 +89,7 @@ export default class TokensController {
     }
 
     const redisTokens = await State.redis.getUserToken(parsed.sub);
-    if (!redisTokens.accessToken) {
+    if (!redisTokens.accessToken && !redisTokens.refreshToken) {
       Log.debug('Verify', 'Missing token in redis');
       throw new InvalidRequest();
     }
@@ -113,9 +113,13 @@ export default class TokensController {
   }
 
   async checkRefreshToken(refreshToken: string): Promise<IIntrospection | null> {
+    const clientRepo = new OidcClientsRepository(OidcClientModel);
+    const client = await clientRepo.getByGrant(EClientGrants.AuthorizationCode);
+    if (!client) throw new InvalidRequest();
+
     const body = new URLSearchParams({
-      client_id: 'oidcClient',
-      client_secret: '4uqMOFQ97b',
+      client_id: client.clientId,
+      client_secret: client.clientSecret,
       token: refreshToken,
     });
 
