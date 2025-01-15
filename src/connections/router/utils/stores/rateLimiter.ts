@@ -1,4 +1,4 @@
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import State from '../../../../tools/state.js';
 import type { IncrementResponse, Store } from 'express-rate-limit';
 

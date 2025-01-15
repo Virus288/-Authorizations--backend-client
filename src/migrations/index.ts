@@ -1,4 +1,4 @@
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import migrations from './actions/index.js';
 import MongoConnection from './connection.js';
 import getModel from './model.js';

@@ -1,5 +1,5 @@
 import jose from 'node-jose';
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import AddKey from './repository/add.js';
 import KeysRepository from './repository/index.js';
 import KeyModel from '../../connections/mongo/models/keys.js';

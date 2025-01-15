@@ -1,4 +1,4 @@
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import OidcClientModel from '../../../../connections/mongo/models/oidcClient.js';
 import UserModel from '../../../../connections/mongo/models/user.js';
 import { EClientGrants, ETokens } from '../../../../enums/index.js';

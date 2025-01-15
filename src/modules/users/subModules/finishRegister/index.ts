@@ -1,4 +1,4 @@
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import ClientModel from '../../../../connections/mongo/models/client.js';
 import { InvalidRequest } from '../../../../errors/index.js';
 import AbstractController from '../../../../tools/abstractions/controller.js';
