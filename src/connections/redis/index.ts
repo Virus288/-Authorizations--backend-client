@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import Repository from './repository.js';
 import * as enums from '../../enums/index.js';
 import getConfig from '../../tools/configLoader.js';

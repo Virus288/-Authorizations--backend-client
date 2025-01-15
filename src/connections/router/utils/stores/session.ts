@@ -1,5 +1,5 @@
 import { Store } from 'express-session';
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import State from '../../../../tools/state.js';
 import type { IUserSession } from '../../../../types/index.js';
 

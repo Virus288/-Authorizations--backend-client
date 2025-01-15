@@ -3,7 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
 import helmet from 'helmet';
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import SessionStore from './utils/stores/session.js';
 import * as errors from '../../errors/index.js';
 import getConfig from '../../tools/configLoader.js';

@@ -1,4 +1,4 @@
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import Router from './index.js';
 import handleErr from '../../../../../errors/handler.js';
 import Controller from '../../../../../modules/users/subModules/startLogout/index.js';

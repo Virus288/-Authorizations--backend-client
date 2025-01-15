@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Log from 'simpleLogger';
+import Log from 'simpl-loggar';
 import getConfig from '../../tools/configLoader.js';
 import type { ConnectOptions } from 'mongoose';
 

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { MongoMemoryServer } from 'mongodb-memory-server'
-import Log from "simpleLogger";
+import Log from "simpl-loggar";
 import Mongo from "../../../../src/connections/mongo/index.js";
 
 export default class FakeMongo extends Mongo {
